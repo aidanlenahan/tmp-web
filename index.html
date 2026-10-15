@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Career Expo Deep Dive</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#2a62b8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Expo Guide">
 <style>
   :root{
     --bg:#f3f6f8; --card:#ffffff; --ink:#14232e; --muted:#5a6b78; --accent:#2a62b8;
@@ -36,5 +43,12 @@
     <p>Deep-dive research on every employer at today's session — what they do, internship paths, and freshman eligibility.</p>
     <a class="btn" href="oct15-career-expo-deep-dive.html">Open the deep dive</a>
   </div>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      });
+    }
+  </script>
 </body>
 </html>
