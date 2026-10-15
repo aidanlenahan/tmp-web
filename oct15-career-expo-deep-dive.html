@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Oct 15 Expo: Deep Dive</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#f3f6f8; --card:#ffffff; --ink:#14232e; --muted:#5a6b78; --line:#d6dfe6;
+  --t1:#0f7a5c; --t2:#2a62b8; --t3:#a7741a; --t4:#8a96a0;
+  --chip:#e6edf2; --yes:#0f7a5c; --no:#b3433f; --unclear:#a7741a;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1a22; --card:#172530; --ink:#e7eef3; --muted:#9aacb9; --line:#2a3c49;
+    --t1:#3fc79c; --t2:#7aa7ee; --t3:#e0aa4f; --t4:#7d8b96; --chip:#223442;
+    --yes:#3fc79c; --no:#e2726d; --unclear:#e0aa4f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1a22; --card:#172530; --ink:#e7eef3; --muted:#9aacb9; --line:#2a3c49;
+  --t1:#3fc79c; --t2:#7aa7ee; --t3:#e0aa4f; --t4:#7d8b96; --chip:#223442;
+  --yes:#3fc79c; --no:#e2726d; --unclear:#e0aa4f;
+}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 70px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px 60px}
+header{padding:32px 0 8px}
+h1{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;font-size:clamp(28px,6vw,42px);line-height:1.05;margin:0 0 10px;letter-spacing:-0.02em}
+.lede{color:var(--muted);margin:0 0 16px;max-width:66ch}
+.callout{background:var(--chip);border-radius:10px;padding:14px 16px;font-size:14.5px;margin:0 0 6px}
+.callout b{color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:16px 0 0;font-size:14px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--c)}
+.elig-legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin:10px 0 0;font-size:13.5px;color:var(--muted)}
+.elig-legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);margin-top:14px}
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filters button{font:inherit;font-size:14px;font-weight:600;color:var(--ink);background:var(--chip);border:1px solid transparent;border-radius:999px;padding:6px 14px;cursor:pointer;min-height:36px}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.filters button:focus-visible{outline:2px solid var(--t2);outline-offset:2px}
+.search{margin-top:10px;position:relative}
+.search input{font:inherit;font-size:15px;width:100%;padding:9px 36px 9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.search input:focus-visible{outline:2px solid var(--t2);outline-offset:1px}
+.search .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:6px 8px;display:none}
+.search.has-term .clear{display:block}
+.count{font-size:14px;color:var(--muted);margin-top:8px}
+h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:22px;margin:34px 0 4px;display:flex;align-items:center;gap:10px}
+h2::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--c)}
+.sub{margin:0 0 12px;color:var(--muted);font-size:15px;max-width:66ch}
+.emp{background:var(--card);border-left:5px solid var(--c);border-bottom:1px solid var(--line);padding:16px}
+.emp:first-of-type{border-top:1px solid var(--line)}
+.emp h3{margin:0;font-size:18px;font-weight:600;line-height:1.25;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.badge{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap;letter-spacing:.01em}
+.badge.yes{background:color-mix(in srgb, var(--yes) 18%, transparent);color:var(--yes)}
+.badge.no{background:color-mix(in srgb, var(--no) 16%, transparent);color:var(--no)}
+.badge.unclear{background:color-mix(in srgb, var(--unclear) 18%, transparent);color:var(--unclear)}
+.meta{display:flex;flex-wrap:wrap;gap:4px 8px;margin:8px 0 10px;font-size:13.5px}
+.meta .chip{background:var(--chip);border-radius:6px;padding:1px 8px}
+.meta .chip.near{background:var(--c);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .meta .chip.near{color:#0f1a22}}
+:root[data-theme="dark"] .meta .chip.near{color:#0f1a22}
+.addr{color:var(--muted);font-size:14px;margin:0 0 10px}
+.sec{margin:0 0 8px}
+.sec .lbl{font-weight:600;font-size:13px;text-transform:none;color:var(--muted);margin:0 0 2px;display:block}
+.sec p{margin:0;font-size:15px;max-width:74ch}
+.site{display:inline-block;margin-top:6px;font-size:14px;color:var(--t2);word-break:break-all}
+.t1{--c:var(--t1)}.t2{--c:var(--t2)}.t3{--c:var(--t3)}.t4{--c:var(--t4)}
+.empty{padding:24px 0;color:var(--muted)}
+.hint{font-size:13px;color:var(--muted);margin:8px 0 0}
+details.tier-group{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:0 16px;margin-top:18px}
+details.tier-group summary{cursor:pointer;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:700;font-size:20px;padding:16px 0;display:flex;align-items:center;gap:10px;list-style:none}
+details.tier-group summary::-webkit-details-marker{display:none}
+details.tier-group summary::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--c);flex-shrink:0}
+details.tier-group summary .n{color:var(--muted);font-weight:400;font-size:15px;margin-left:2px}
+details.tier-group[open] summary{border-bottom:1px solid var(--line)}
+details.tier-group .sub{margin:14px 0 4px}
+details.tier-group .emp:first-of-type{border-top:1px solid var(--line)}
+details.tier-group .emp:last-of-type{border-bottom:none}
+details.tier4{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 16px;margin-top:10px}
+details.tier4 summary{cursor:pointer;font-weight:600;padding:12px 0;font-size:15.5px}
+.mini{border-top:1px solid var(--line);padding:12px 0;font-size:14.5px}
+.mini:first-of-type{border-top:none}
+.mini .name{font-weight:600}
+.mini .addr{font-size:13px;margin:2px 0 4px}
+.mini a{color:var(--t2);font-size:13px;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Oct 15 expo: deep dive</h1>
+  <p class="lede">Every employer at today's session, researched directly from their own sites and internship postings — what they do, actual internship programs where they exist, and whether a freshman can apply now or needs to wait.</p>
+  <div class="callout"><b>Quick read on freshman eligibility:</b> most structured corporate internship programs (EXL, Con Edison, Jacobs) want you to have finished sophomore year at minimum, and MIT Lincoln Lab and Wall Street summer-analyst programs (Natixis) effectively want juniors. <b>Mirae Asset Securities explicitly lists freshmen as eligible</b> — that's your best confirmed shot at an internship application this cycle. For everyone else marked "ask directly," the smaller or less formal the company, the more likely they'll take a motivated freshman who shows up in person — worth asking regardless of a posted internship.</p>
+  <div class="legend">
+    <span style="--c:var(--t1)">Tier 1: go first</span>
+    <span style="--c:var(--t2)">Tier 2: strong secondary</span>
+    <span style="--c:var(--t3)">Tier 3: long shot</span>
+    <span style="--c:var(--t4)">Tier 4: low fit (collapsed below)</span>
+  </div>
+  <div class="elig-legend">
+    <span><span class="dot" style="background:var(--yes)"></span>Freshman eligible now</span>
+    <span><span class="dot" style="background:var(--no)"></span>Need sophomore/junior standing+</span>
+    <span><span class="dot" style="background:var(--unclear)"></span>Not stated publicly — ask at the table</span>
+  </div>
+</header>
+<div class="bar">
+  <div class="filters" id="filters" role="group" aria-label="Filters">
+    <button data-f="all" aria-pressed="true">All</button>
+    <button data-f="nj" aria-pressed="false">New Jersey only</button>
+    <button data-f="near" aria-pressed="false">Near home</button>
+    <button data-f="t12" aria-pressed="false">Tiers 1-2 only</button>
+    <button data-f="fresh" aria-pressed="false">Freshman-eligible</button>
+  </div>
+  <p class="hint">Tap any number of filters to combine them — tap "All" to clear.</p>
+  <div class="search" id="searchWrap">
+    <input type="text" id="search" placeholder="Search by name, place, or keyword…" aria-label="Search employers" autocomplete="off">
+    <button class="clear" id="searchClear" type="button" aria-label="Clear search">&times;</button>
+  </div>
+  <div class="count" id="count"></div>
+</div>
+<main id="list"></main>
+
+<details class="tier4" id="tier4box">
+<summary id="tier4summary">Tier 4: low-fit employers (construction, civil, MEP, structural) — tap to expand</summary>
+<div id="tier4list"></div>
+</details>
+
+</div>
+
+<script>
+var ZONES={A:"Near home (Monmouth / Central NJ)",B:"Elsewhere in NJ",C:"NYC area",D:"Farther away"};
+var TIERS={
+ 1:["Tier 1: go first","Deepest research — genuine internship programs in CS, cybersecurity or computer engineering, or a direct line to it."],
+ 2:["Tier 2: strong secondary","Real IT/tech functions or finance-with-tech angles worth a stop, researched in depth."],
+ 3:["Tier 3: long shot","Smaller or less-documented companies with some technical angle — worth a quick conversation."]
+};
+var TD="11:00 am to 2:00 pm EDT";
+
+var E=[
+{n:"PSEG — Public Service Enterprise Group",a:"80 Park Plz, Newark, NJ 07102",u:"http://www.pseg.com",t:1,z:"B",
+ about:"One of the largest energy companies in the US, with 13,000+ employees across PSE&G (NJ utility), PSEG Long Island, and PSEG Power (generation). Runs critical electric, gas and nuclear infrastructure across NJ and Long Island.",
+ intern:"PSEG runs a structured paid summer internship (10-12 weeks) with real IT, cybersecurity and engineering tracks, including a Cyber Security Risk & Compliance (CSRC) team internship and a Cyber Operational Technology (OT) team internship defending the electric grid's industrial control systems through blue/red teaming. Interns can return multiple summers; many convert to full-time via PSEG's Leadership Development Program.",
+ elig:"no", eligNote:"The OT cybersecurity internship explicitly requires candidates to have \"completed Sophomore level coursework\" before the internship starts — so you'd need to be a rising junior. Other corporate IT internships just say \"currently enrolled,\" but are competitive; worth applying as a sophomore.",
+ tip:"This is your single best cybersecurity-specific target today. Lead with your NJCCIC internship and GFACT cert, and ask specifically about the Cyber OT and CSRC internship tracks for next summer."},
+
+{n:"MIT Lincoln Laboratory",a:"244 Wood St, Lexington, MA 02421",u:"http://www.ll.mit.edu",t:1,z:"D",
+ about:"A federally funded R&D lab operated by MIT for the Department of Defense, doing applied research at the intersection of academia and national defense — cybersecurity, AI, embedded systems, secure/resilient systems, applied cryptography.",
+ intern:"Runs a paid Summer Research Program (SRP) and year-round co-ops with named groups like Secure Resilient Systems and Technology, Cyber System Assessments (reverse engineering/vulnerability research), and Cyber Operations and Analysis Technology. 10-12 week internships, housing support for non-local interns, shuttle from Boston housing, dedicated mentorship.",
+ elig:"no", eligNote:"Postings consistently say \"BS (junior year or later preferred)\" or \"rising college junior or senior.\" US citizenship and ability to get/hold a Secret DoD clearance are required for nearly every technical role — both of these rule out most freshmen.",
+ tip:"Far from home (MA) and citizenship/clearance-gated, but it's one of the strongest pure-cybersecurity research employers at the whole expo. Worth a conversation now to learn what they look for by junior year, even if you can't apply yet."},
+
+{n:"Virtusa Corporation",a:"20 Corporate Place South, Piscataway, NJ 08854",u:"http://www.virtusa.com",t:1,z:"B",
+ about:"An IT services and digital engineering consulting firm (part of Cognizant as of recent years) focused on \"Conceive, Transform, Optimize\" enterprise software projects for banking, financial services, insurance and other large clients. Has a real Piscataway, NJ office about 50 minutes from Little Silver.",
+ intern:"Has run paid 10-week Developer Internship programs in past cycles (academic background in CS or EE preferred) and an \"Engineering First\" residency program aimed at early-career/bootcamp talent building real client-facing software.",
+ elig:"unclear", eligNote:"No explicit class-year floor found in current postings — the Engineering First program is explicitly open to people with \"a computer science degree or a coding boot camp certificate,\" which suggests less rigid year requirements than big-bank or defense programs.",
+ tip:"Closest major software/IT consulting employer to home today. Ask specifically whether underclassmen can apply to the Piscataway office's internship pipeline."},
+
+{n:"EXL Service",a:"280 Park Avenue, New York, NY 10017",u:"http://www.exlservice.com",t:1,z:"C",
+ about:"A publicly traded (NASDAQ: EXLS) data and AI company that builds machine learning, GenAI and cloud analytics solutions for insurance, healthcare, banking and other industries. Pairs every intern with a mentor through a structured program.",
+ intern:"Multiple internship tracks: Analytics & AI (data lifecycle, data management, dashboards), and a dedicated AI Intern role doing agentic AI/GenAI prototyping for insurance and healthcare clients. 2026 cohort starts June 1.",
+ elig:"no", eligNote:"The general Intern posting explicitly states: \"Current undergraduate Sophomore in engineering, business, economics, computer science, mathematics, or related fields.\" So sophomore year is the floor, not freshman.",
+ tip:"Mark your calendar to apply as a rising sophomore. Mention your GEM and BucIT projects — EXL's internship is hands-on dashboards and data pipelines, which lines up well with your stack."},
+
+{n:"Con Edison",a:"4 Irving Place, 9th Floor, New York, NY 10003",u:"http://www.coned.com/careers",t:1,z:"C",
+ about:"One of the largest investor-owned energy companies in the US, delivering electric, gas and steam service across NYC and Westchester. Runs a visible in-house cybersecurity operations center protecting the city's electric grid, and partners with NYU Tandon and other schools on cyber talent pipelines (its GOLD leadership program is a known feeder for analysts).",
+ intern:"A 10-12 week paid Summer Internship Program across many departments, explicitly including IT majors and a Computer Aide Temp track; many interns return multiple summers or convert to co-op status, with some joining full-time via the Leadership Development Program (LDP).",
+ elig:"no", eligNote:"The published internship requirement is \"at least upper sophomore status,\" full-time enrollment in a four-year program, and a 3.0+ GPA — freshmen do not qualify for this cycle.",
+ tip:"Worth talking to anyway: ask what their cybersecurity ops center looks for and whether there's a path (like a campus ambassador or early-interest list) for freshmen to get on their radar before sophomore year."},
+
+{n:"Quest Diagnostics",a:"500 Plaza Dr, Secaucus, NJ 07094",u:"https://careers.questdiagnostics.com/",t:1,z:"B",
+ about:"The world's largest provider of diagnostic testing and lab services — about 50,000 employees running phlebotomy, lab science, logistics, and a large corporate technology organization behind the scenes (test result systems, data, security for protected health information).",
+ intern:"Has a dedicated \"Internships\" career area on their jobs site. The only internship currently posted is a Student Finance Intern role in Secaucus (hybrid), but the career site lists Technology as one of its ongoing career areas separate from lab/clinical roles.",
+ elig:"unclear", eligNote:"No class-year requirement stated on the one posted internship; technology-track internships aren't currently listed, so ask directly whether they run a tech/IT internship pipeline.",
+ tip:"Secaucus is about 50 minutes from home. Since health data security is a real need for them (HIPAA-regulated diagnostic data at huge scale), ask specifically about their information security or application development teams."},
+
+{n:"Mirae Asset Securities (USA) Inc.",a:"810 7th Avenue, New York, NY 10019",u:"https://miraeassetsecuritiesus.com",t:1,z:"C",
+ about:"A New York-based institutional capital markets platform (founded 1992) offering Prime Brokerage, Securities Financing, Agency Execution, Correspondent Clearing and Global Markets services to institutional investors — part of the larger Mirae Asset Financial Group.",
+ intern:"Runs a structured summer internship program recruited through university career offices (confirmed via Stanford's internship database for 2024-2026 cycles).",
+ elig:"yes", eligNote:"Their program explicitly lists \"Open To: Freshmen, Sophomores, Juniors, and Seniors\" — freshmen are named eligible. The only catch: seniors/co-terms can't have conferred their degree before the internship ends.",
+ tip:"This is your strongest confirmed freshman-eligible internship lead from today's whole session. Your business minor is a real asset here — bring it up explicitly."},
+
+{n:"New Jersey Resources (NJR)",a:"1415 Wyckoff Rd, Wall, NJ 07727",u:"http://www.njresources.com",t:2,z:"A",
+ about:"A Fortune 1000 energy infrastructure company (natural gas transportation, distribution, clean energy, home services) headquartered in Wall Township — about 20-25 minutes from Little Silver, one of the closest employers at the whole expo.",
+ intern:"Has a standing Information Technology career track on its careers site (\"Join us to provide critical IT solutions in an ever-changing environment\") alongside Engineering and Sustainability tracks, with current openings searchable by keyword.",
+ elig:"unclear", eligNote:"No internship-specific class-year requirement published; their IT page reads more like an ongoing hiring track than a formal structured summer cohort, so ask directly about internship timing and eligibility.",
+ tip:"The single closest-to-home employer with a real IT department today. Worth a stop purely on distance and the fact they explicitly call out IT as a growth area."},
+
+{n:"Stryker — Corporate",a:"2240 Ball Drive, Maryland Heights, MO (listed HQ); Mahwah, NJ site",u:"https://careers.stryker.com/",t:2,z:"B",
+ about:"One of the world's largest medical technology companies (~56,000 employees, $25B+ annual sales), with products across Orthopaedics, Medical/Surgical and Neurotechnology — including the Mako surgical robotics platform. Stryker's Orthopaedics/Trauma division has a major Mahwah, NJ site, about an hour from home.",
+ intern:"Stryker runs a large, well-known internship and co-op program across engineering, R&D, IT and digital health; past cycles have specifically included software and robotics-adjacent internships tied to products like Mako.",
+ elig:"unclear", eligNote:"No specific year requirement found for current postings; large med-tech internship programs like this typically prefer rising sophomores or juniors, so ask directly.",
+ tip:"Ask specifically about the Mahwah, NJ site and the Mako robotics software team — that's the strongest computer-engineering angle inside a company this size."},
+
+{n:"Natixis CIB Americas — Global Markets",a:"1251 Avenue of the Americas, New York, NY 10020",u:"https://americas.cib.natixis.com/",t:2,z:"C",
+ about:"The investment banking and capital markets arm of French financial group Natixis, providing advisory, financing, corporate banking and capital markets services to corporations, institutions and sovereign clients worldwide.",
+ intern:"Runs a Summer Analyst Program (confirmed via past-cycle recruiting materials and campus postings) typical of Wall Street investment banks.",
+ elig:"no", eligNote:"Summer analyst programs at firms like Natixis are, industry-wide, built for rising seniors (junior-year students), since they primarily exist to generate full-time offers for graduation. Freshmen are not a realistic target here.",
+ tip:"Low priority for you right now given the junior-year gate, but if you ever pivot toward fintech on the business-minor side, this is worth revisiting as a junior."},
+
+{n:"TerraForm Power LLC",a:"200 Liberty Street, New York, NY 10281",u:"http://www.terraform.com",t:2,z:"C",
+ about:"A portfolio company of Brookfield Renewable, headquartered in NYC, operating roughly 2,200 MW of utility-scale wind, solar and battery storage across 15 US states and Ontario. Real-time monitoring of distributed generation assets implies a genuine data/IT backbone.",
+ intern:"Brookfield Renewable (TerraForm's parent) posts internships periodically, including non-technical tracks like legal; no dedicated software/data internship was found publicly as of this research.",
+ elig:"unclear", eligNote:"No class-year requirement published for the internships found.",
+ tip:"Ask specifically how they monitor thousands of distributed renewable assets in real time — that's where a CS/data role would live inside this company, even without a named internship posting."},
+
+{n:"Stark Tech",a:"95 Stark Street, Tonawanda, NY 14150",u:"http://starktechgroup.com/",t:2,z:"D",
+ about:"An \"intelligent building solutions\" company combining building automation controls, HVAC/BAS programming and technology services — bridges facilities engineering and real software work (their postings include Programmer and Programmer II roles).",
+ intern:"No internship program confirmed; however, they actively hire Programmer/Programmer II roles for building-controls software, which is a genuine computer-engineering-adjacent job family.",
+ elig:"unclear", eligNote:"Not found; ask directly, especially since this is a full-time-hiring company rather than a classic campus-recruiting one.",
+ tip:"Far from home (Buffalo area), so only worth it if the conversation is good — ask what their Programmer roles actually involve day to day."},
+
+{n:"Jacobs",a:"1999 Bryan St, Dallas, TX 75201",u:"http://www.jacobs.com",t:2,z:"D",
+ about:"A ~45,000-person global engineering and technical services firm spanning advanced manufacturing, cities & places, energy, environmental, life sciences and transportation — including a significant federal and \"critical mission solutions\" arm that touches cyber and national-security-adjacent IT work.",
+ intern:"Runs a large structured internship program across its business lines, recruited heavily through university career centers (confirmed via UCSD and other campus career offices).",
+ elig:"no", eligNote:"Internship eligibility is commonly cited as \"at least junior year for most engineering tracks\" — freshmen and sophomores generally don't qualify, with some exceptions possibly existing for non-engineering tracks.",
+ tip:"Ask specifically about their Critical Mission Solutions or federal/cyber-adjacent group, and whether any sophomore-eligible exploratory programs exist, since the junior-year floor is for \"most\" tracks, not necessarily all."},
+
+{n:"Amneal Pharmaceuticals",a:"400 Crossing Boulevard, Bridgewater Township, NJ 08807",u:"http://www.amneal.com/careers",t:2,z:"B",
+ about:"A publicly traded (NYSE: AMRX) generic and specialty pharmaceutical manufacturer, headquartered in Bridgewater, NJ (about 45 minutes from home), with a stated focus on innovating access to essential medicines.",
+ intern:"Careers site routes to an Oracle Cloud-based job board for current US openings; no internship-specific page was found in this research pass.",
+ elig:"unclear", eligNote:"Not found publicly; ask directly on-site about IT/data internships, since a manufacturer this size runs a real internal IT organization even though it's not advertised as a tech employer.",
+ tip:"Not a natural CS target on its face, but large pharma manufacturers run serious manufacturing-execution-systems and data infrastructure — worth one question about their internal IT team."},
+
+{n:"Everest Insurance",a:"Everest Way, Warren, NJ 07059",u:"http://www.everestglobal.com",t:2,z:"B",
+ about:"A global underwriting leader (reinsurance and insurance) with 30+ offices worldwide and 2,400+ colleagues, headquartered in Warren, NJ — about 40 minutes from home. Has a named \"Corporate functions\" career track that typically includes IT.",
+ intern:"Careers site lists Insurance, Reinsurance, Corporate Functions and Veteran opportunity tracks with a general \"Search Jobs\" portal; no internship-specific page found in this pass.",
+ elig:"unclear", eligNote:"Not found publicly; ask directly whether Corporate Functions includes a technology/IT internship track.",
+ tip:"Similar pitch to AEGIS and GNY from the Sep 24 session — insurance IT plus your business minor is a reasonable combination to raise here."},
+
+{n:"Greater New York Insurance Companies (GNY)",a:"200 Madison Ave, New York, NY 10016",u:"http://www.gny.com",t:2,z:"C",
+ about:"An A+ rated property/casualty mutual insurance company founded in 1914, headquartered in NYC, known for a \"promote-from-within\" culture. Currently has 24 open positions listed on its careers page (titles not itemized in this research pass).",
+ intern:"No internship-specific page confirmed in this research; worth asking directly given the open-roles count.",
+ elig:"unclear", eligNote:"Not found publicly.",
+ tip:"Same insurance-IT pitch as Everest and AEGIS — ask what's behind their 24 open roles and whether any touch IT/data."},
+
+{n:"Health Rizz LLC",a:"1125 Maxwell Lane, Hoboken, NJ 07030",u:"https://healthrizz.org/",t:2,z:"A",
+ about:"A small, Hoboken-based (right by Stevens' campus) school-wellness startup evolving from an after-school program into a scalable children's health education platform. Just launched the Health Rizz App, bringing bite-sized interactive health lessons to kids via three mascot characters (Hydro, Phyto and Pro Rizzler).",
+ intern:"No formal internship program or job board found — this reads as a very small, founder-led team.",
+ elig:"unclear", eligNote:"No published eligibility; given the tiny size of the company, a direct conversation about helping build or maintain their just-launched app is more realistic than applying through a formal process.",
+ tip:"Closest employer to campus today (walking distance). Worth 5 minutes purely to ask if they need help on the app's engineering side — small startups like this often take on students informally."},
+
+{n:"Fi-Tek, LLC",a:"333 Thornall Street, Edison, NJ 08837",u:"https://www.fi-tek.com/",t:2,z:"B",
+ about:"A genuine fintech software company (not just \"finance\") building wealth-management and investor-accounting platforms: HedgeTek (investor accounting for hedge/PE funds), a Global Family Office platform via its Rockit Solutions subsidiary, an OpsSourcing outsourcing platform, and Fi-Tek Cloud Services. Over 100 financial institutions use their platform.",
+ intern:"No formal internship posting; their careers page says simply: \"Send us your resume and we will get back to you if we have a suitable opening matching your profile.\"",
+ elig:"unclear", eligNote:"Explicitly requires US work authorization (stated on the Handshake listing); no class-year restriction found, and the informal \"send a resume\" process suggests more flexibility than a structured program.",
+ tip:"This is a real software engineering employer hiding behind a generic \"fintech\" label — worth more attention than its plain listing suggests. Ask what their engineering team actually builds day to day."},
+
+{n:"American Modular Power Solutions (AMPS)",a:"429 Rockaway Valley Road, Boonton, NJ 07005",u:"https://www.ampsnj.com/",t:3,z:"B",
+ about:"A substation engineering, procurement, fabrication, construction and project-management firm serving the power industry — \"one-stop shopping\" for substation projects.",
+ intern:"No internship program or IT/software roles found; this is primarily an electrical/power engineering shop.",
+ elig:"unclear",
+ tip:"Low fit for CS specifically; more relevant if you ever lean toward power-systems computer engineering (SCADA, substation automation)."},
+
+{n:"C Squared Systems (C2 Systems)",a:"65 Dartmouth Drive, Auburn, NH 03032",u:"http://csquaredsystems.com",t:3,z:"D",
+ about:"An RF engineering, consulting and software development company building remote network diagnostics and monitoring tools — their flagship product, SitePortal, is a web-based platform that centrally monitors and manages wireless network equipment (DAS, Wi-Fi, cell sites, public safety radio, utilities).",
+ intern:"Has an open \"Open Positions\" careers page with standard benefits listed (health/dental/vision, 401k); no internship-specific program confirmed, but this is a real small software company.",
+ elig:"unclear", eligNote:"Not found; small company, worth asking directly whether they'd consider a student.",
+ tip:"Based in New Hampshire with offices covering the NYC metro region — ask if any NJ/NYC-based roles exist, since their monitoring software (SitePortal, SiteWatch+) is a genuine computer-engineering product."},
+
+{n:"Quanxiom",a:"100 Biscayne Boulevard, Miami, FL 33132",u:"http://www.quanxiom.com",t:3,z:"D",
+ about:"A Miami-based software company building \"business operating systems\" (ERP-style platforms) for service industries — their flagship product Qmmand runs dispatch, field work and back-office operations for snow/landscaping, HVAC, paving, insurance claims and more. Describes itself as \"a boutique team of passionate engineers.\"",
+ intern:"No internship program or jobs page found in this research pass.",
+ elig:"unclear",
+ tip:"A genuine small software company, but based in Miami with no confirmed NJ/NY presence or internship path — ask if they have any remote or NJ-area engineering roles."},
+
+{n:"Getinge — Production Engineering",a:"45 Barbour Pond Drive, Wayne, NJ 07470",u:"https://www.getinge.com/int/company/careers/",t:3,z:"B",
+ about:"A global medical device company (US HQ in Wayne, NJ) developing products and solutions for health and medical industries.",
+ intern:"Their listing mentions \"highly engaging summer and co-op programs centered around a student's personal and professional growth.\"",
+ elig:"unclear", eligNote:"No class-year detail found; ask directly about the co-op program's eligibility.",
+ tip:"Worth asking whether their production/manufacturing engineering co-ops touch embedded software or device firmware, which is the computer-engineering angle here."},
+
+{n:"Foot Locker Corporate",a:"330 West 34th Street, New York, NY 10001",u:"https://careers.footlocker.com/",t:3,z:"C",
+ about:"A global footwear and apparel retailer (~2,500 stores, 26 countries) with a real e-commerce and technology organization behind its digital storefront and loyalty programs.",
+ intern:"No internship-specific information confirmed in this pass.",
+ elig:"unclear",
+ tip:"If you ask about anything here, ask specifically about the e-commerce/digital technology team rather than retail operations."},
+
+{n:"US Army Recruiters, Mid-Atlantic Recruiting Battalion",a:"Lakehurst, NJ",u:"https://www.goarmy.com/",t:3,z:"A",
+ about:"Army recruiting covering technology, engineering, medicine and leadership career paths, with cutting-edge training and advanced education programs.",
+ intern:"Not an internship in the traditional sense — this is a conversation about enlistment or officer paths (ROTC, etc.), some of which include cyber/signal specialties.",
+ elig:"unclear", eligNote:"Freshmen and sophomores can absolutely start a conversation here; military service timelines work differently from corporate internships.",
+ tip:"Worth 5 minutes only if you're genuinely open to a service commitment — ask specifically about cyber/signal officer or enlisted paths if so."}
+];
+
+var E4=[
+{n:"Anselmi & DeCicco Inc. — civil engineering",a:"1977 Springfield Avenue, Maplewood, NJ 07040",u:"http://anselmidecicco.com",z:"B",d:"General contractors specializing in civil construction — infrastructure and sitework for industrial, transportation and power utility projects."},
+{n:"Artheon — Engineering",a:"1 Tower Center Boulevard, East Brunswick, NJ 08816",u:"https://artheon.com/",z:"B",d:"Boutique engineering and consulting firm spanning civil/site engineering, environmental permitting, transportation infrastructure and construction management."},
+{n:"Boswell Engineering",a:"330 Phillips Ave, South Hackensack, NJ 07606",u:"http://boswellengineering.com/",z:"B",d:"Full-service, multi-disciplinary engineering firm founded in 1924, one of ENR's Top 500 Engineering Firms, serving public/private clients across the tri-state area and PA."},
+{n:"Cosentini Associates / Tetra Tech — MEP",a:"498 Seventh Ave, Manhattan, NY 10018",u:"http://www.cosentini.com",z:"C",d:"75-year-old mechanical, electrical and plumbing (MEP) engineering firm behind many of the world's most iconic buildings."},
+{n:"HNTB Corporation",a:"715 Kirk Drive, Kansas City, MO 64105",u:"http://www.hntb.com",z:"D",d:"Over a century old infrastructure and mobility engineering firm working on transportation projects nationwide."},
+{n:"Michael Baker International",a:"100 Airside Drive, Coraopolis, PA 15108",u:"https://mbakerintl.com/en/",z:"D",d:"Engineering, architecture, consulting and technology services across Infrastructure, Integrated Design/Advisory, Mitigation/Environmental/Response/Recovery, and GovTech verticals."},
+{n:"Neglia Group",a:"34 Park Avenue, Lyndhurst, NJ 07071",u:"https://www.negliagroup.com/",z:"B",d:"Civil engineering and surveying firm founded 1948, grown to 100+ employees offering interdisciplinary civil engineering services."},
+{n:"New Hudson Facades, LLC",a:"815 Columbia Ave, Linwood, PA 19061",u:"http://www.newhudsonfacades.com",z:"D",d:"Custom architectural façade company designing, engineering, manufacturing and installing facades for world-class buildings."},
+{n:"NYC Department of Design and Construction",a:"30-30 Thomson Ave, Long Island City, NY 11101",u:"http://www.nyc.gov/ddc",z:"C",d:"The City's primary capital construction project manager — builds firehouses, libraries, police precincts, courthouses, senior centers and more."},
+{n:"Pennoni",a:"1900 Market Street, Philadelphia, PA 19103",u:"https://www.pennoni.com/",z:"D",d:"Multidisciplinary consulting engineering firm (50+ years) spanning land development to energy management."},
+{n:"Petillo Companies",a:"167 Flanders Netcong Road, Flanders, NJ 07836",u:"https://www.petillo.com",z:"B",d:"Heavy construction company (est. 1994) specializing in site/civil construction, with offices in Flanders, NJ and Middletown, NY."},
+{n:"Polise Consulting Engineers, P.C. — Mechanical Engineer",a:"133 W 19th St, Manhattan, NY 10011",u:"http://polisece.com/",z:"C",d:"50+ year old consulting engineering firm specializing in mechanical, electrical and building services design."},
+{n:"QE Solar",a:"18 Commerce Street, Springfield Township, NJ 07081",u:"http://www.qesolar.com",z:"B",d:"Clean energy technology company providing engineering, O&M for commercial/industrial and utility-scale solar PV and battery storage systems."},
+{n:"R3M Engineering, Inc.",a:"1405 New Jersey Highway 18, Old Bridge, NJ 08857",u:"http://www.r3m-eng.com",z:"A",d:"Engineering services for public and private water and wastewater utilities, systems and municipalities."},
+{n:"Reidy Contracting Group LLC",a:"58 West 40th Street, New York, NY 10018",u:"http://www.reidygroup.com",z:"C",d:"Construction firm (since 2010) handling renovation, new construction and infrastructure projects for NYC clients."},
+{n:"Shawmut Design and Construction — Construction Operations",a:"560 Harrison Avenue, Boston, MA 02118",u:"http://www.shawmut.com/",z:"D",d:"National construction management firm with offices in Boston, NY, Providence, Las Vegas, New Haven, LA, Miami and West Springfield."},
+{n:"Southland Holdings — American Bridge",a:"1100 Kubota Dr, Grapevine, TX 76051",u:"http://www.southlandholdings.com/",z:"D",d:"120-year-old infrastructure construction group combining five subsidiaries, including the storied American Bridge Company."},
+{n:"Tri-State Civil Construction LLC",a:"45 Whitney Rd, Mahwah, NJ 07430",u:"https://tristateconstruction.com/",z:"B",d:"NJ-based subcontractor specializing in deep foundation solutions, construction dewatering, groundwater treatment and geotechnical services in the NY metro area."},
+{n:"TYLin",a:"345 California St, Suite 2300, San Francisco, CA 94104",u:"http://www.tylin.com",z:"D",d:"Globally recognized full-service infrastructure consulting firm with 3,000+ employees across the Americas, Asia and Europe."},
+{n:"US Electric LLC",a:"2444 Morris Avenue, Union, NJ 07083",u:"http://use-corp.com",z:"B",d:"Full-service electrical construction firm serving NY, NJ, PA and CT."},
+{n:"vda Inc.",a:"120 Eagle Rock Avenue, East Hanover, NJ 07936",u:"http://www.vdassoc.com",z:"B",d:"No job titles listed on Handshake; requires US work authorization. Not enough public information to assess fit — ask directly if you pass by."},
+{n:"W&W|AFCO Steel",a:"1730 West Reno Avenue, Oklahoma City, OK 73106",u:"https://wwafcosteel.com/",z:"D",d:"Steel erection specialist with vertical integration into fabrication and delivery for complex construction projects nationwide."},
+{n:"Walsh Group",a:"929 W Adams St, Chicago, IL 60607",u:"http://www.walshgroup.com",z:"D",d:"Fourth-generation, family-owned construction contractor (founded 1898) offering design, build, finance and operations services."},
+{n:"WJ Regan & Company LLC",a:"1650 Broadway, New York, NY 10019",u:"http://www.wjrconstruction.com",z:"C",d:"General construction firm serving clients in the NY metro area."},
+{n:"WSP",a:"One Penn Plaza, 2nd Floor, New York, NY 10119",u:"https://www.wsp.com/en-us",z:"C",d:"One of the world's leading professional services firms (73,000 employees) spanning transportation, infrastructure, environment, building, energy and water."},
+{n:"CFA Society New York",a:"1540 Broadway, Suite 1010, New York, NY 10036",u:"http://www.cfany.org",z:"C",d:"Not an employer in the usual sense — a financial-services professional education and career-development forum (largest CFA Institute affiliate, founded 1937 by Benjamin Graham). Worth a stop only if you're exploring the business-minor/finance side specifically."}
+];
+E4.forEach(function(e){ e.t=4; e.elig="unclear"; });
+
+var active=new Set();
+var searchTerm="";
+function esc(s){return String(s).replace(/&(?!amp;|middot;)/g,"&amp;");}
+function eligBadge(e){
+  if(e.elig==="yes") return '<span class="badge yes">Freshman OK</span>';
+  if(e.elig==="no") return '<span class="badge no">Sophomore/junior+</span>';
+  return '<span class="badge unclear">Ask directly</span>';
+}
+function matchesSearch(e){
+  if(!searchTerm) return true;
+  var hay=[e.n,e.a,e.about,e.intern,e.d,e.tip,ZONES[e.z]].filter(Boolean).join(" ").toLowerCase();
+  return hay.indexOf(searchTerm)!==-1;
+}
+function ok(e){
+  if(active.has("nj") && !(e.z==="A"||e.z==="B")) return false;
+  if(active.has("near") && e.z!=="A") return false;
+  if(active.has("t12") && e.t>2) return false;
+  if(active.has("fresh") && e.elig!=="yes") return false;
+  if(!matchesSearch(e)) return false;
+  return true;
+}
+function empCard(e){
+  return '<article class="emp t'+e.t+'"><h3>'+esc(e.n)+eligBadge(e)+'</h3>'
+    +'<div class="meta"><span class="chip'+(e.z==="A"?' near':'')+'">'+ZONES[e.z]+'</span><span class="chip">'+TD+'</span></div>'
+    +'<p class="addr">'+esc(e.a)+'</p>'
+    +'<div class="sec"><span class="lbl">What they do</span><p>'+esc(e.about)+'</p></div>'
+    +'<div class="sec"><span class="lbl">Internship / entry path</span><p>'+esc(e.intern)+'</p></div>'
+    +(e.eligNote?'<div class="sec"><span class="lbl">Eligibility detail</span><p>'+esc(e.eligNote)+'</p></div>':'')
+    +'<div class="sec"><span class="lbl">Your move</span><p>'+esc(e.tip)+'</p></div>'
+    +'<a class="site" href="'+e.u+'" target="_blank" rel="noopener">'+esc(e.u)+'</a></article>';
+}
+function render(){
+  var byTier={1:[],2:[],3:[]};
+  var shown=0;
+  E.forEach(function(e){
+    if(!ok(e))return;
+    byTier[e.t].push(e);
+    shown++;
+  });
+  var out="";
+  [1,2,3].forEach(function(t){
+    var arr=byTier[t];
+    if(!arr.length)return;
+    out+='<details class="tier-group t'+t+'" open><summary>'+TIERS[t][0]+'<span class="n">('+arr.length+')</span></summary>'
+      +'<p class="sub">'+TIERS[t][1]+'</p>'
+      +arr.map(empCard).join('')
+      +'</details>';
+  });
+  var t4shown=E4.filter(ok).length;
+  document.getElementById("list").innerHTML=shown?out:'<p class="empty">No employers match this combination of filters'+(searchTerm?' and search':'')+'.</p>';
+  document.getElementById("count").textContent="Showing "+shown+" of "+E.length+" researched employers (plus "+t4shown+" of "+E4.length+" low-fit ones collapsed below)";
+}
+function renderTier4(){
+  var matches=E4.filter(ok);
+  document.getElementById("tier4summary").textContent="Tier 4: low-fit employers (construction, civil, MEP, structural) — showing "+matches.length+" of "+E4.length+" — tap to expand";
+  if(!matches.length){
+    document.getElementById("tier4list").innerHTML='<p class="empty">No low-fit employers match this combination of filters'+(searchTerm?' and search':'')+'.</p>';
+    return;
+  }
+  var out="";
+  matches.forEach(function(e){
+    out+='<div class="mini"><div class="name">'+esc(e.n)+'</div><div class="addr">'+esc(e.a)+'</div><div>'+esc(e.d)+'</div><a href="'+e.u+'" target="_blank" rel="noopener">'+esc(e.u)+'</a></div>';
+  });
+  document.getElementById("tier4list").innerHTML=out;
+}
+document.getElementById("filters").addEventListener("click",function(ev){
+  var b=ev.target.closest("button"); if(!b)return;
+  var f=b.getAttribute("data-f");
+  if(f==="all"){ active.clear(); }
+  else { if(active.has(f)) active.delete(f); else active.add(f); }
+  [].forEach.call(this.querySelectorAll("button"),function(x){
+    var xf=x.getAttribute("data-f");
+    x.setAttribute("aria-pressed", xf==="all" ? (active.size===0?"true":"false") : (active.has(xf)?"true":"false"));
+  });
+  render();
+  renderTier4();
+});
+var searchInput=document.getElementById("search");
+var searchWrap=document.getElementById("searchWrap");
+searchInput.addEventListener("input",function(){
+  searchTerm=searchInput.value.trim().toLowerCase();
+  searchWrap.classList.toggle("has-term", !!searchTerm);
+  render();
+  renderTier4();
+});
+document.getElementById("searchClear").addEventListener("click",function(){
+  searchInput.value="";
+  searchTerm="";
+  searchWrap.classList.remove("has-term");
+  searchInput.focus();
+  render();
+  renderTier4();
+});
+render();
+renderTier4();
+</script>
+</body>
+</html>
